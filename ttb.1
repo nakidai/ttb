@@ -1,0 +1,31 @@
+.Dd April 17, 2025
+.Dt TTB 1
+.Os
+.
+.Sh NAME
+.Nm ttb
+.Nd tiny tcp broadcast
+.
+.Sh SYNOPSIS
+.Nm
+.Op Ar port Op Ar address
+.
+.Sh DESCRIPTION
+.Nm
+is a server
+that broadcasts all incoming messages
+from any connection
+to every other one.
+.
+.Pp
+The arguments are as follows:
+.Bl -tag -width Ds
+.It Ar port
+Port to listen.
+Default is
+.Dv 8604 .
+.It Ar address
+Address to listen.
+Default is
+.Dv 0.0.0.0 .
+.El

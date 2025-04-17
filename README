@@ -1,0 +1,20 @@
+TTB(1)			    General Commands Manual			TTB(1)
+
+NAME
+     ttb - tiny tcp broadcast
+
+SYNOPSIS
+     ttb [port [address]]
+
+DESCRIPTION
+     ttb is a server that broadcasts all incoming messages from any connection
+     to every other one.
+
+     The arguments are as follows:
+
+     port    Port to listen.  Default is 8604.
+
+     address
+	     Address to listen.	 Default is 0.0.0.0.
+
+ttb				April 17, 2025				   ttb
