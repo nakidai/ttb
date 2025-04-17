@@ -1,11 +1,9 @@
-#include <errno.h>
 #include <signal.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 #include <err.h>
-#include <fcntl.h>
 #include <poll.h>
 #include <unistd.h>
 
@@ -73,20 +71,13 @@ int main(int argc, char **argv)
 			for (size_t i = 0; i < lengthof(peers); ++i)
 				if (!peers[i])
 				{
-					res = fcntl(client, F_SETFL, fcntl(client, F_GETFL, 0) | O_NONBLOCK);
-					if (res == -1)
-					{
-						warn("fcntl()");
-						goto accept_err;
-					}
 					peers[i] = client;
 					goto accept_end;
 				}
 			warnx("dropping %d as peer list is full", client);
-accept_err:
 			close(client);
 		}
-accept_end:
+accept_end:;
 		nfds_t written = 0;
 		for (size_t i = 0; i < lengthof(peers); ++i)
 			if (peers[i])
@@ -101,26 +92,38 @@ accept_end:
 		if (!res)
 			continue;
 
-		for (size_t i = 0; i < lengthof(peers); ++i)
+		for (size_t i = 0; i < written; ++i)
 		{
-			if (!peers[i])
+			if (!(ppeers[i].revents & POLLIN))
 				continue;
 
-			errno = 0;
-			ssize_t reads = read(peers[i], buf, sizeof(buf));
+			ssize_t reads = read(ppeers[i].fd, buf, sizeof(buf));
 			if (reads == -1 || !reads)
 			{
-				if (errno != EAGAIN && errno != EWOULDBLOCK)
-				{
-				    close(peers[i]);
-				    peers[i] = 0;
-				}
+				for (size_t j = 0; j < lengthof(peers); ++j)
+					if (ppeers[i].fd == peers[j])
+					{
+						close(peers[j]);
+						peers[j] = 0;
+						break;
+					}
 				continue;
 			}
 
 			for (size_t j = 0; j < lengthof(peers); ++j)
-				if (peers[j] && i != j)
-					write(peers[j], buf, reads);
+			{
+				if (!peers[j] || i == j)
+					continue;
+				size_t writtenall = 0;
+				do
+				{
+					ssize_t written = write(peers[j], buf, reads);
+					if (written == -1)
+						break;
+					else
+						writtenall += written;
+				} while (writtenall < reads);
+			}
 		}
 	}
 }
