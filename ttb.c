@@ -14,7 +14,6 @@
 
 
 #define SOCKETS_MAX 128
-#define POLL_WAITMS 1000
 #define BUFFER_SIZE 512
 
 #define lengthof(X) (sizeof(X) / sizeof(*(X)))
@@ -40,11 +39,11 @@ int main(int argc, char **argv)
 			err(1, "inet_pton()");
 	}
 
-	int sock = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
-	if (sock == -1)
+	peers[0] = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
+	if (peers[0] == -1)
 		err(1, "socket()");
 
-	res = setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int));
+	res = setsockopt(peers[0], SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int));
 	if (res == -1)
 		err(1, "setsockopt()");
 
@@ -54,45 +53,45 @@ int main(int argc, char **argv)
 		.sin_port = htons(port),
 		.sin_addr = inaddr,
 	};
-	res = bind(sock, (void *)&addr, sizeof(addr));
+	res = bind(peers[0], (void *)&addr, sizeof(addr));
 	if (res == -1)
 		err(1, "bind()");
 
-	res = listen(sock, 16);
+	res = listen(peers[0], 16);
 	if (res == -1)
 		err(1, "listen()");
 	
 	signal(SIGPIPE, SIG_IGN);
 	for (;;)
 	{
-		int client = accept(sock, NULL, NULL);
-		if (client > 0)
-		{
-			for (size_t i = 0; i < lengthof(peers); ++i)
-				if (!peers[i])
-				{
-					peers[i] = client;
-					goto accept_end;
-				}
-			warnx("dropping %d as peer list is full", client);
-			close(client);
-		}
-accept_end:;
 		nfds_t written = 0;
-		for (size_t i = 0; i < lengthof(peers); ++i)
+		for (size_t i = 1; i < lengthof(peers); ++i)
 			if (peers[i])
 				ppeers[written++] = (struct pollfd)
 				{
 					.fd = peers[i],
 					.events = POLLIN,
 				};
-		res = poll(ppeers, written, POLL_WAITMS);
+		res = poll(ppeers, written, -1);
 		if (res == -1)
 			err(1, "poll");
 		if (!res)
 			continue;
 
-		for (size_t i = 0; i < written; ++i)
+		if (ppeers[0].revents & POLLIN)
+		{
+			int client = accept(peers[0], NULL, NULL);
+			for (size_t i = 1; i < lengthof(peers); ++i)
+				if (!peers[i])
+				{
+					peers[i] = client;
+					goto after;
+				}
+			warnx("dropping %d as peer list is full", client);
+			close(client);
+		}
+after:
+		for (size_t i = 1; i < written; ++i)
 		{
 			if (!(ppeers[i].revents & POLLIN))
 				continue;
@@ -100,7 +99,7 @@ accept_end:;
 			ssize_t reads = read(ppeers[i].fd, buf, sizeof(buf));
 			if (reads == -1 || !reads)
 			{
-				for (size_t j = 0; j < lengthof(peers); ++j)
+				for (size_t j = 1; j < lengthof(peers); ++j)
 					if (ppeers[i].fd == peers[j])
 					{
 						close(peers[j]);
@@ -110,7 +109,7 @@ accept_end:;
 				continue;
 			}
 
-			for (size_t j = 0; j < lengthof(peers); ++j)
+			for (size_t j = 1; j < lengthof(peers); ++j)
 			{
 				if (!peers[j] || i == j)
 					continue;
