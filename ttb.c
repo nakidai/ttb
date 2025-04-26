@@ -38,7 +38,7 @@ int main(int argc, char **argv)
 			err(1, "inet_pton()");
 	}
 
-	peers[0] = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
+	peers[0] = socket(AF_INET, SOCK_STREAM, 0);
 	if (peers[0] == -1)
 		err(1, "socket()");
 
@@ -72,6 +72,11 @@ int main(int argc, char **argv)
 		if (ppeers[0].revents & POLLIN)
 		{
 			int client = accept(peers[0], NULL, NULL);
+			if (client == -1)
+			{
+				warn("accept()");
+				goto after;
+			}
 			for (size_t i = 1; i < lengthof(peers); ++i)
 				if (!peers[i])
 				{
