@@ -20,21 +20,20 @@
 
 int main(int argc, char **argv)
 {
-	int res;
-
-	int peers[SOCKETS_MAX] = {0};
+	struct sockaddr_in addr = {.sin_family = AF_INET};
+	int peers[SOCKETS_MAX] = {0}, res;
 	struct pollfd ppeers[SOCKETS_MAX] = {0};
 	char buf[BUFFER_SIZE] = {0};
 
-	int port = 8604;
+	addr.sin_port = htons(8604);
 	if (argc >= 2)
-		port = atoi(argv[1]);
+		addr.sin_port = htons(atoi(argv[1]));
 
-	struct in_addr inaddr = (struct in_addr)
+	addr.sin_addr = (struct in_addr)
 	{ .s_addr = INADDR_ANY };
 	if (argc >= 3)
 	{
-		res = inet_pton(AF_INET, argv[2], &inaddr);
+		res = inet_pton(AF_INET, argv[2], &addr.sin_addr);
 		if (res == -1)
 			err(1, "inet_pton()");
 	}
@@ -47,12 +46,6 @@ int main(int argc, char **argv)
 	if (res == -1)
 		err(1, "setsockopt()");
 
-	struct sockaddr_in addr = (struct sockaddr_in)
-	{
-		.sin_family = AF_INET,
-		.sin_port = htons(port),
-		.sin_addr = inaddr,
-	};
 	res = bind(peers[0], (void *)&addr, sizeof(addr));
 	if (res == -1)
 		err(1, "bind()");
@@ -75,8 +68,6 @@ int main(int argc, char **argv)
 		res = poll(ppeers, written, -1);
 		if (res == -1)
 			err(1, "poll");
-		if (!res)
-			continue;
 
 		if (ppeers[0].revents & POLLIN)
 		{
