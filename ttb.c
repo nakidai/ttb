@@ -58,7 +58,7 @@ int main(int argc, char **argv)
 	for (;;)
 	{
 		nfds_t written = 0;
-		for (size_t i = 1; i < lengthof(peers); ++i)
+		for (size_t i = 0; i < lengthof(peers); ++i)
 			if (peers[i])
 				ppeers[written++] = (struct pollfd)
 				{
