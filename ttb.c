@@ -29,8 +29,7 @@ int main(int argc, char **argv)
 	if (argc >= 2)
 		addr.sin_port = htons(atoi(argv[1]));
 
-	addr.sin_addr = (struct in_addr)
-	{ .s_addr = INADDR_ANY };
+	addr.sin_addr = (struct in_addr){.s_addr = INADDR_ANY};
 	if (argc >= 3)
 	{
 		res = inet_pton(AF_INET, argv[2], &addr.sin_addr);
@@ -41,15 +40,12 @@ int main(int argc, char **argv)
 	peers[0] = socket(AF_INET, SOCK_STREAM, 0);
 	if (peers[0] == -1)
 		err(1, "socket()");
-
 	res = setsockopt(peers[0], SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int));
 	if (res == -1)
 		err(1, "setsockopt()");
-
 	res = bind(peers[0], (void *)&addr, sizeof(addr));
 	if (res == -1)
 		err(1, "bind()");
-
 	res = listen(peers[0], 16);
 	if (res == -1)
 		err(1, "listen()");
@@ -110,14 +106,14 @@ after:
 				if (!peers[j] || i == j)
 					continue;
 				size_t writtenall = 0;
-				do
+				while (writtenall < reads)
 				{
 					ssize_t written = write(peers[j], buf, reads);
 					if (written == -1)
 						break;
 					else
 						writtenall += written;
-				} while (writtenall < reads);
+				}
 			}
 		}
 	}
