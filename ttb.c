@@ -108,7 +108,7 @@ after:
 				size_t writtenall = 0;
 				while (writtenall < reads)
 				{
-					ssize_t written = write(peers[j], buf, reads);
+					ssize_t written = write(peers[j], buf + writtenall, reads - writtenall);
 					if (written == -1)
 						break;
 					else
