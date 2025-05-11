@@ -102,19 +102,8 @@ after:
 			}
 
 			for (size_t j = 1; j < lengthof(peers); ++j)
-			{
-				if (!peers[j] || i == j)
-					continue;
-				size_t writtenall = 0;
-				while (writtenall < reads)
-				{
-					ssize_t written = write(peers[j], buf + writtenall, reads - writtenall);
-					if (written == -1)
-						break;
-					else
-						writtenall += written;
-				}
-			}
+				if (peers[j] && i != j)
+					write(peers[j], buf, reads);
 		}
 	}
 }
