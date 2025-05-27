@@ -103,7 +103,7 @@ after:
 			}
 
 			for (size_t j = 1; j < lengthof(peers); ++j)
-				if (peers[j] && i != j)
+				if (peers[j] && ppeers[i].fd != peers[j])
 					while (errno = 0, write(peers[j], buf, reads), errno == EINTR);
 		}
 	}
